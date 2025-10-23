@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/authdb}
+    username: ${DB_USER:auth_user}
+    password: ${DB_PASS:auth_pass}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+    open-in-view: false
+  flyway:
+    schemas: ${DB_SCHEMA:auth}
+    default-schema: ${DB_SCHEMA:auth}
+    create-schemas: true
+
+server:
+  port: 8080
+
+app:
+  issuer: ${AUTH_ISSUER:http://localhost:8080}
+  jwks-url: ${AUTH_JWKS_URL:}
+  audience: ${AUTH_AUDIENCE:offerhunt-api}
+
+#spring:
+#  security:
+#    oauth2:
+#      client:
+#        registration:
+#          google:
+#            client-id: ${GOOGLE_CLIENT_ID:}
+#            client-secret: ${GOOGLE_CLIENT_SECRET:}
+#          github:
+#            client-id: ${GITHUB_CLIENT_ID:}
+#            client-secret: ${GITHUB_CLIENT_SECRET:}
