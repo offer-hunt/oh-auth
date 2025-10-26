@@ -1,3 +1,8 @@
+app:
+  security:
+    enabled: false
+    use-local-key: true
+
 spring:
   jpa:
     hibernate:

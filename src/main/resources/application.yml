@@ -21,6 +21,9 @@ app:
   issuer: ${AUTH_ISSUER:http://localhost:8080}
   jwks-url: ${AUTH_JWKS_URL:}
   audience: ${AUTH_AUDIENCE:offerhunt-api}
+  security:
+    enabled: true
+    use-local-key: true
 
 #spring:
 #  security:
