@@ -1,0 +1,21 @@
+app:
+  security:
+    enabled: false
+    use-local-key: true
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.default_schema: auth
+  flyway:
+    locations: classpath:db/migration
+    create-schemas: true
+    schemas: auth
+    default-schema: auth
+    clean-disabled: false
+
+server:
+  port: 0

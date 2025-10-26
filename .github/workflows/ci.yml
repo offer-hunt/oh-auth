@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Checkstyle
+        run: ./gradlew checkstyleMain checkstyleTest --no-daemon
+
+      - name: Build & Test
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: true
+        run: ./gradlew clean build test --no-daemon
+
+  build-and-push:
+    if: github.event_name == 'push'
+    needs: build-test
+    runs-on: ubuntu-latest
+    environment: envs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build JAR (no tests)
+        run: ./gradlew clean build -x test --no-daemon
+
+      - name: Compute image tag
+        id: vars
+        run: echo "sha7=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Docker build (dual tag)
+        run: |
+          IMAGE=offerhunt/oh-auth:${{ steps.vars.outputs.sha7 }}
+          docker build -t "$IMAGE" -t offerhunt/oh-auth:latest .
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push images
+        run: |
+          docker push offerhunt/oh-auth:${{ steps.vars.outputs.sha7 }}
+          docker push offerhunt/oh-auth:latest
