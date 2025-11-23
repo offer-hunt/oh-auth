@@ -13,6 +13,18 @@ spring:
     schemas: ${DB_SCHEMA:auth}
     default-schema: ${DB_SCHEMA:auth}
     create-schemas: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope: openid, profile, email
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope: read:user, user:email
 
 server:
   port: 8080
@@ -24,15 +36,6 @@ app:
   security:
     enabled: true
     use-local-key: true
-
-#spring:
-#  security:
-#    oauth2:
-#      client:
-#        registration:
-#          google:
-#            client-id: ${GOOGLE_CLIENT_ID:}
-#            client-secret: ${GOOGLE_CLIENT_SECRET:}
-#          github:
-#            client-id: ${GITHUB_CLIENT_ID:}
-#            client-secret: ${GITHUB_CLIENT_SECRET:}
+  oauth2:
+    redirect: ${AUTH_OAUTH2_REDIRECT:http://localhost:3000/auth/callback}
+    error-redirect: ${AUTH_OAUTH2_ERROR_REDIRECT:http://localhost:3000/auth/error}

@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -34,12 +35,21 @@ public class SecurityResourceConfig {
         HttpSecurity http,
         @Qualifier("jwtDecoder") JwtDecoder jwtDecoder
     ) throws Exception {
-        http.securityMatcher("/api/**")
+        http
+            .securityMatcher("/api/**")
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a
+                .requestMatchers(
+                    "/api/auth/register",
+                    "/api/auth/login",
+                    "/api/auth/refresh"
+                ).permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated())
-            .oauth2ResourceServer(o -> o.jwt(j -> j.decoder(jwtDecoder))); // без авто-поиска бина
+                .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(o -> o.jwt(j -> j.decoder(jwtDecoder)));
         return http.build();
     }
 

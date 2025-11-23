@@ -13,7 +13,10 @@ docker-compose up -d
 2. Запустить сервис:
 
 ```bash
+export AUTH_ISSUER=http://localhost:8080
+export AUTH_AUDIENCE=offerhunt-api
 ./gradlew bootRun
+
 ```
 
 ### Проверки

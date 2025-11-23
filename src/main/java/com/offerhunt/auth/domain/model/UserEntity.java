@@ -1,4 +1,4 @@
-package com.offerhunt.auth.model;
+package com.offerhunt.auth.domain.model;
 
 import jakarta.persistence.*;
 
@@ -15,7 +15,7 @@ public class UserEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false, name = "password_hash")
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(nullable = false, name = "global_role")
