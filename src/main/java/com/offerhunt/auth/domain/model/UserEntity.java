@@ -27,6 +27,15 @@ public class UserEntity {
     @Column(name = "created_at")
     private Instant createdAt = Instant.now();
 
+    @Column(name = "updated_at")
+    private Instant updatedAt = Instant.now();
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     protected UserEntity() {
     }
 
@@ -51,5 +60,37 @@ public class UserEntity {
 
     public String getGlobalRole() {
         return globalRole;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public Instant getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    public void setEmailVerifiedAt(Instant emailVerifiedAt) {
+        this.emailVerifiedAt = emailVerifiedAt;
     }
 }

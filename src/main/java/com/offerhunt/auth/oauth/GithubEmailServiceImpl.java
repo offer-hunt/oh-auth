@@ -2,7 +2,6 @@ package com.offerhunt.auth.oauth;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -27,10 +26,11 @@ public class GithubEmailServiceImpl implements GithubEmailService {
     }
 
     @Override
-    public String resolveEmail(OAuth2User user, OAuth2AuthorizedClient client) {
+    public GithubEmail resolveEmail(OAuth2User user, OAuth2AuthorizedClient client) {
         String email = user.<String>getAttribute("email");
         if (email != null) {
-            return email;
+            // из user-атрибутов мы не знаем флаг верификации, считаем false
+            return new GithubEmail(email, false);
         }
 
         if (client == null || client.getAccessToken() == null) {
@@ -50,23 +50,28 @@ public class GithubEmailServiceImpl implements GithubEmailService {
             }
 
             // primary && verified
-            String primaryVerified = emails.stream()
+            Map<String, Object> primaryVerifiedEntry = emails.stream()
                 .filter(e -> Boolean.TRUE.equals(e.get("primary")) && Boolean.TRUE.equals(e.get("verified")))
-                .map(e -> (String) e.get("email"))
-                .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
 
-            if (primaryVerified != null) {
-                return primaryVerified;
+            if (primaryVerifiedEntry != null) {
+                String e = (String) primaryVerifiedEntry.get("email");
+                if (e != null) {
+                    return new GithubEmail(e, true);
+                }
             }
 
-            // fallback — первый любой email
-            return emails.stream()
-                .map(e -> (String) e.get("email"))
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+            // fallback — первый любой email, флаг verified берём из записи
+            for (Map<String, Object> e : emails) {
+                String addr = (String) e.get("email");
+                if (addr != null) {
+                    boolean verified = Boolean.TRUE.equals(e.get("verified"));
+                    return new GithubEmail(addr, verified);
+                }
+            }
+
+            return null;
         } catch (RestClientException ex) {
             log.error("GitHub OAuth: failed to call /user/emails", ex);
             return null;

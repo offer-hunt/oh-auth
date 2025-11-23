@@ -2,22 +2,18 @@ package com.offerhunt.auth.oauth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.offerhunt.auth.api.dto.TokenResponse;
-import com.offerhunt.auth.domain.dao.UserRepo;
-import com.offerhunt.auth.domain.model.UserEntity;
-import com.offerhunt.auth.domain.service.UserService;
+import com.offerhunt.auth.domain.service.SsoLoginService;
+import com.offerhunt.auth.domain.service.SsoLoginService.LoginResult;
+import com.offerhunt.auth.domain.service.SsoLoginService.SsoProfile;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,8 +32,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private static final Logger log = LoggerFactory.getLogger(OAuth2LoginSuccessHandler.class);
 
-    private final UserRepo userRepo;
-    private final UserService userService;
+    private final SsoLoginService ssoLoginService;
     private final ObjectMapper objectMapper;
     private final OAuth2AuthorizedClientService clientService;
     private final GithubEmailService githubEmailService;
@@ -45,16 +40,14 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final String frontendErrorRedirect;
 
     public OAuth2LoginSuccessHandler(
-        UserRepo userRepo,
-        UserService userService,
+        SsoLoginService ssoLoginService,
         ObjectMapper objectMapper,
         OAuth2AuthorizedClientService clientService,
         GithubEmailService githubEmailService,
         @Value("${app.oauth2.redirect}") String frontendRedirect,
         @Value("${app.oauth2.error-redirect}") String frontendErrorRedirect
     ) {
-        this.userRepo = userRepo;
-        this.userService = userService;
+        this.ssoLoginService = ssoLoginService;
         this.objectMapper = objectMapper;
         this.clientService = clientService;
         this.githubEmailService = githubEmailService;
@@ -92,12 +85,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 response.sendError(HttpStatus.BAD_REQUEST.value(), "Unsupported provider");
                 return;
             }
-        } catch (DbUnavailableException ex) {
-            // уже залогировано корректной строкой
+        } catch (SsoLoginService.DbUnavailableException ex) {
             writeError(response, json, HttpStatus.SERVICE_UNAVAILABLE, "Ошибка сервера. Попробуйте позже.");
             return;
-        } catch (InsertFailedException ex) {
-            // уже залогировано корректной строкой
+        } catch (SsoLoginService.InsertFailedException ex) {
             writeError(response, json, HttpStatus.INTERNAL_SERVER_ERROR, "Что-то пошло не так. Попробуйте позже.");
             return;
         }
@@ -110,25 +101,44 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private LoginResult handleGoogle(OAuth2User oauth2User) {
         String email = oauth2User.<String>getAttribute("email");
         String name = oauth2User.<String>getAttribute("name");
+        String sub = oauth2User.<String>getAttribute("sub");
+        Boolean emailVerifiedAttr = oauth2User.<Boolean>getAttribute("email_verified");
+        boolean emailVerified = Boolean.TRUE.equals(emailVerifiedAttr);
 
         if (email == null) {
             log.error("Google OAuth failed – insert error: email is null in profile");
-            throw new InsertFailedException();
+            throw new SsoLoginService.InsertFailedException();
         }
         if (name == null) {
             name = email;
         }
+        if (sub == null) {
+            // fallback, чтобы не завалиться на null PK
+            sub = email;
+        }
 
         log.info("Google OAuth success – data received");
-        return upsertUser("Google", email, name);
+
+        SsoProfile profile = new SsoProfile(
+            "google",
+            sub,
+            email,
+            emailVerified,
+            name
+        );
+
+        return ssoLoginService.login(profile);
     }
 
     private LoginResult handleGithub(OAuth2User oauth2User, OAuth2AuthorizedClient client) {
-        String email = githubEmailService.resolveEmail(oauth2User, client);
-        if (email == null) {
+        GithubEmailService.GithubEmail resolved = githubEmailService.resolveEmail(oauth2User, client);
+        if (resolved == null || resolved.email() == null) {
             log.error("GitHub OAuth failed – insert error: email is null");
-            throw new InsertFailedException();
+            throw new SsoLoginService.InsertFailedException();
         }
+
+        String email = resolved.email();
+        boolean emailVerified = resolved.verified();
 
         String name = oauth2User.<String>getAttribute("name");
         if (name == null) {
@@ -138,43 +148,26 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             name = email;
         }
 
-        log.info("GitHub OAuth success – data received");
-        return upsertUser("GitHub", email, name);
-    }
-
-    private LoginResult upsertUser(String provider, String email, String name) {
-        String normalizedEmail = email.toLowerCase(Locale.ROOT);
-
-        try {
-            Optional<UserEntity> existingOpt = userRepo.findByEmail(normalizedEmail);
-            if (existingOpt.isPresent()) {
-                UserEntity existing = existingOpt.get();
-                log.info("{} OAuth success – existing user", provider);
-                TokenResponse tokens = userService.mintTokens(existing.getId(), existing.getGlobalRole());
-                return new LoginResult(tokens, false);
-            }
-        } catch (DataAccessException ex) {
-            log.error("{} OAuth failed – db error", provider, ex);
-            throw new DbUnavailableException();
+        Object idAttr = oauth2User.getAttribute("id");
+        String providerUserId = idAttr != null ? String.valueOf(idAttr) : oauth2User.<String>getAttribute("login");
+        if (providerUserId == null) {
+            providerUserId = email;
         }
 
-        UserEntity newUser = new UserEntity(
-            UUID.randomUUID(),
-            normalizedEmail,
-            null,
+        log.info("GitHub OAuth success – data received");
+
+        SsoProfile profile = new SsoProfile(
+            "github",
+            providerUserId,
+            email,
+            emailVerified,
             name
         );
 
-        try {
-            UserEntity saved = userRepo.saveAndFlush(newUser);
-            log.info("{} OAuth success – new user", provider);
-            TokenResponse tokens = userService.mintTokens(saved.getId(), saved.getGlobalRole());
-            return new LoginResult(tokens, true);
-        } catch (DataAccessException ex) {
-            log.error("{} OAuth failed – insert error", provider, ex);
-            throw new InsertFailedException();
-        }
+        return ssoLoginService.login(profile);
     }
+
+    // --- вывод ответа / редиректы ---
 
     private boolean isJsonRequest(HttpServletRequest request) {
         String accept = request.getHeader(HttpHeaders.ACCEPT);
@@ -186,12 +179,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     }
 
     private void writeSuccess(HttpServletResponse response, LoginResult result, boolean json) throws IOException {
+        TokenResponse tokens = result.tokens();
         if (json) {
-            response.setStatus(result.newUser ? HttpStatus.CREATED.value() : HttpStatus.OK.value());
+            response.setStatus(result.newUser() ? HttpStatus.CREATED.value() : HttpStatus.OK.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            objectMapper.writeValue(response.getOutputStream(), result.tokens());
+            objectMapper.writeValue(response.getOutputStream(), tokens);
         } else {
-            String redirect = buildSuccessRedirectUrl(result.tokens());
+            String redirect = buildSuccessRedirectUrl(tokens);
             response.sendRedirect(redirect);
         }
     }
@@ -224,10 +218,4 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             response.sendRedirect(redirect);
         }
     }
-
-    private record LoginResult(TokenResponse tokens, boolean newUser) { }
-
-    private static class DbUnavailableException extends RuntimeException { }
-
-    private static class InsertFailedException extends RuntimeException { }
 }
