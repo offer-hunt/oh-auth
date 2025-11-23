@@ -98,7 +98,7 @@ public class UserService {
         return mintTokens(uid, role != null ? role : "USER");
     }
 
-    private TokenResponse mintTokens(UUID userId, String role) {
+    public TokenResponse mintTokens(UUID userId, String role) {
         Instant now = Instant.now();
 
         var access = JwtClaimsSet.builder()

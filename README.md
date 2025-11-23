@@ -13,8 +13,13 @@ docker-compose up -d
 2. Запустить сервис:
 
 ```bash
-export AUTH_ISSUER=http://localhost:8080
-export AUTH_AUDIENCE=offerhunt-api
+Закидываем в .env переменные
+
+set -a
+source .env
+set +a
+
+echo "$GOOGLE_CLIENT_ID" - проверка что видим
 ./gradlew bootRun
 
 ```
@@ -56,3 +61,26 @@ Docker Hub: `offerhunt/oh-auth:<git-sha7>`
     * открыто: `/api/public/**`
     * только `ROLE_ADMIN`: `/api/admin/**`
     * всё остальное под `Bearer` access-JWT.
+
+### Вход через Google и GitHub
+
+#### Настройка клиентов
+
+В консоли провайдера надо чтобы совпадало:
+
+- Google: `http://localhost:8080/login/oauth2/code/google`
+- GitHub: `http://localhost:8080/login/oauth2/code/github`
+
+В `.env` / переменных окружения:
+
+```bash
+AUTH_ISSUER=http://localhost:8080
+AUTH_AUDIENCE=offerhunt-api
+
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+AUTH_OAUTH2_REDIRECT=http://localhost:3000/auth/callback
+AUTH_OAUTH2_ERROR_REDIRECT=http://localhost:3000/auth/error
