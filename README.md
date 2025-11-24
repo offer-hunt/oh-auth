@@ -84,3 +84,15 @@ GITHUB_CLIENT_ID=...
 GITHUB_CLIENT_SECRET=...
 AUTH_OAUTH2_REDIRECT=http://localhost:3000/auth/callback
 AUTH_OAUTH2_ERROR_REDIRECT=http://localhost:3000/auth/error
+
+MAIL_USERNAME=den.moskvin2045@gmail.com
+MAIL_PASSWORD=password
+MAIL_HOST=localhost
+MAIL_PORT=1025
+PASSWORD_RESET_FROM=you@local.test
+```
+
+
+## MailHog (локальная почта)
+`docker run -d --name mailhog -p 1025:1025 -p 8025:8025 mailhog/mailhog`
+После отправки письма открой в браузере: http://localhost:8025
