@@ -13,7 +13,15 @@ docker-compose up -d
 2. Запустить сервис:
 
 ```bash
+Закидываем в .env переменные
+
+set -a
+source .env
+set +a
+
+echo "$GOOGLE_CLIENT_ID" - проверка что видим
 ./gradlew bootRun
+
 ```
 
 ### Проверки
@@ -53,3 +61,38 @@ Docker Hub: `offerhunt/oh-auth:<git-sha7>`
     * открыто: `/api/public/**`
     * только `ROLE_ADMIN`: `/api/admin/**`
     * всё остальное под `Bearer` access-JWT.
+
+### Вход через Google и GitHub
+
+#### Настройка клиентов
+
+В консоли провайдера надо чтобы совпадало:
+
+- Google: `http://localhost:8080/login/oauth2/code/google`
+- GitHub: `http://localhost:8080/login/oauth2/code/github`
+
+В `.env` / переменных окружения:
+
+```bash
+AUTH_ISSUER=http://localhost:8080
+AUTH_AUDIENCE=offerhunt-api
+
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+AUTH_OAUTH2_REDIRECT=http://localhost:3000/auth/callback
+AUTH_OAUTH2_ERROR_REDIRECT=http://localhost:3000/auth/error
+
+MAIL_USERNAME=den.moskvin2045@gmail.com
+MAIL_PASSWORD=password
+MAIL_HOST=localhost
+MAIL_PORT=1025
+PASSWORD_RESET_FROM=you@local.test
+```
+
+
+## MailHog (локальная почта)
+`docker run -d --name mailhog -p 1025:1025 -p 8025:8025 mailhog/mailhog`
+После отправки письма открой в браузере: http://localhost:8025
