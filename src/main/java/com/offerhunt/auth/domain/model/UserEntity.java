@@ -93,4 +93,9 @@ public class UserEntity {
     public void setEmailVerifiedAt(Instant emailVerifiedAt) {
         this.emailVerifiedAt = emailVerifiedAt;
     }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
 }

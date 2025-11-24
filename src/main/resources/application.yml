@@ -13,6 +13,17 @@ spring:
     schemas: ${DB_SCHEMA:auth}
     default-schema: ${DB_SCHEMA:auth}
     create-schemas: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   security:
     oauth2:
       client:
@@ -39,3 +50,11 @@ app:
   oauth2:
     redirect: ${AUTH_OAUTH2_REDIRECT:http://localhost:3000/auth/callback}
     error-redirect: ${AUTH_OAUTH2_ERROR_REDIRECT:http://localhost:3000/auth/error}
+  auth:
+    password-reset:
+      ttl-seconds: 3600
+  password-reset:
+    from: ${PASSWORD_RESET_FROM:${MAIL_USERNAME:}}
+    subject: ${PASSWORD_RESET_SUBJECT:Восстановление пароля OfferHunt}
+    base-url: ${AUTH_PASSWORD_RESET_BASE_URL:http://localhost:3000/auth/reset-password}
+

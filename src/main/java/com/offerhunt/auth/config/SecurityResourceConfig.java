@@ -45,7 +45,9 @@ public class SecurityResourceConfig {
                 .requestMatchers(
                     "/api/auth/register",
                     "/api/auth/login",
-                    "/api/auth/refresh"
+                    "/api/auth/refresh",
+                    "/api/auth/password/forgot",
+                    "/api/auth/password/reset"
                 ).permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
