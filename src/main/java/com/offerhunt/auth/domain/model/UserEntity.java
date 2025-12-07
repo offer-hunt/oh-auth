@@ -98,4 +98,8 @@ public class UserEntity {
         this.passwordHash = passwordHash;
     }
 
+    public String getFullName() {
+        return fullName;
+    }
+
 }
