@@ -2,7 +2,10 @@ package com.offerhunt.auth.api.exception;
 
 import com.offerhunt.auth.api.dto.ErrorResponse;
 import com.offerhunt.auth.domain.service.PasswordRecoveryService;
+import com.offerhunt.auth.domain.service.UserProfileService;
 import jakarta.validation.ConstraintViolationException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -13,9 +16,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -79,5 +81,29 @@ public class GlobalExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of("message", "Ссылка недействительна или устарела."));
+    }
+
+    @ExceptionHandler(UserProfileService.ProfileUpdateDbException.class)
+    public ResponseEntity<Map<String, String>> handleProfileUpdateDb(UserProfileService.ProfileUpdateDbException ex) {
+        log.info("Profile update failed - server error");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(Map.of("message", "Не удалось сохранить изменения. Попробуйте позже"));
+    }
+
+    @ExceptionHandler(UserProfileService.AvatarServerException.class)
+    public ResponseEntity<Map<String, String>> handleAvatarServer(UserProfileService.AvatarServerException ex) {
+        String msg = switch (ex.op()) {
+            case UPLOAD -> "Не удалось загрузить аватар. Попробуйте позже";
+            case DELETE -> "Не удалось удалить аватар. Попробуйте позже";
+            case LOAD -> "Не удалось загрузить аватар. Попробуйте позже";
+        };
+        log.info("Avatar op failed - server error op={}", ex.op());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("message", msg));
+    }
+
+    // если размер превышен на уровне multipart до попадания в контроллер
+    @ExceptionHandler({MaxUploadSizeExceededException.class, MultipartException.class})
+    public ResponseEntity<Map<String, String>> handleMultipartTooLarge(RuntimeException ex) {
+        return ResponseEntity.badRequest().body(Map.of("message", "Размер файла не должен превышать 5 МБ"));
     }
 }

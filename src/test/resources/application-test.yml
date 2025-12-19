@@ -16,6 +16,16 @@ spring:
     schemas: auth
     default-schema: auth
     clean-disabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-client
+            client-secret: test-google-secret
+          github:
+            client-id: test-github-client
+            client-secret: test-github-secret
 
 server:
   port: 0
