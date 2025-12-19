@@ -24,6 +24,18 @@ public class UserEntity {
     @Column(name = "full_name")
     private String fullName;
 
+    @Column(name = "bio")
+    private String bio;
+
+    @Column(name = "avatar_key")
+    private String avatarKey;
+
+    @Column(name = "avatar_content_type")
+    private String avatarContentType;
+
+    @Column(name = "avatar_updated_at")
+    private Instant avatarUpdatedAt;
+
     @Column(name = "created_at")
     private Instant createdAt = Instant.now();
 
@@ -62,6 +74,26 @@ public class UserEntity {
         return globalRole;
     }
 
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public String getAvatarKey() {
+        return avatarKey;
+    }
+
+    public String getAvatarContentType() {
+        return avatarContentType;
+    }
+
+    public Instant getAvatarUpdatedAt() {
+        return avatarUpdatedAt;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -98,8 +130,23 @@ public class UserEntity {
         this.passwordHash = passwordHash;
     }
 
-    public String getFullName() {
-        return fullName;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public void setAvatarKey(String avatarKey) {
+        this.avatarKey = avatarKey;
+    }
+
+    public void setAvatarContentType(String avatarContentType) {
+        this.avatarContentType = avatarContentType;
+    }
+
+    public void setAvatarUpdatedAt(Instant avatarUpdatedAt) {
+        this.avatarUpdatedAt = avatarUpdatedAt;
+    }
 }

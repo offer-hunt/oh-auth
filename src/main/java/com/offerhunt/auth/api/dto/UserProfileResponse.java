@@ -5,13 +5,15 @@ import java.util.List;
 import java.util.UUID;
 
 public record UserProfileResponse(
-        UUID userId,
-        String email,
-        String fullName,
-        String role,
-        Instant createdAt,
-        Instant lastLoginAt,
-        Instant emailVerifiedAt,
-        String issuer,
-        List<String> audience
+    UUID userId,
+    String email,
+    String fullName,
+    String bio,
+    String avatarUrl,
+    String role,
+    Instant createdAt,
+    Instant lastLoginAt,
+    Instant emailVerifiedAt,
+    String issuer,
+    List<String> audience
 ) { }

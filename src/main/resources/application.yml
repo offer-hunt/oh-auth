@@ -36,6 +36,10 @@ spring:
             client-id: ${GITHUB_CLIENT_ID:}
             client-secret: ${GITHUB_CLIENT_SECRET:}
             scope: read:user, user:email
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 server:
   port: 8080
@@ -58,3 +62,7 @@ app:
     subject: ${PASSWORD_RESET_SUBJECT:Восстановление пароля OfferHunt}
     base-url: ${AUTH_PASSWORD_RESET_BASE_URL:http://localhost:3000/auth/reset-password}
 
+  avatar:
+    storage: ${AVATAR_STORAGE:local}
+    local:
+      base-dir: ${AVATAR_LOCAL_DIR:./data/avatars}
