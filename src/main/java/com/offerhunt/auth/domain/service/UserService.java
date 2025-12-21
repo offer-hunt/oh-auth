@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -124,4 +125,35 @@ public class UserService {
         String rt = jwtEncoder.encode(JwtEncoderParameters.from(refresh)).getTokenValue();
         return new TokenResponse("Bearer", at, 900, rt);
     }
+
+    @Transactional
+    public void changePassword(UUID userId, String currentPassword, String newPassword) {
+        UserEntity u;
+        try {
+            u = repo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
+        } catch (DataAccessException ex) {
+            log.error("Password change failed - server error userId={}", userId, ex);
+            throw new PasswordChangeDbException();
+        }
+
+        if (u.getPasswordHash() == null || !pe.matches(currentPassword, u.getPasswordHash())) {
+            log.info("Password change failed - incorrect current password userId={}", userId);
+            throw new IncorrectCurrentPasswordException();
+        }
+
+        try {
+            u.setPasswordHash(pe.encode(newPassword));
+            u.setUpdatedAt(Instant.now());
+            repo.saveAndFlush(u);
+            log.info("Password changed userId={}", userId);
+        } catch (DataAccessException ex) {
+            log.error("Password change failed - server error userId={}", userId, ex);
+            throw new PasswordChangeDbException();
+        }
+    }
+
+    public static class IncorrectCurrentPasswordException extends RuntimeException { }
+    public static class PasswordChangeDbException extends RuntimeException { }
+
 }
