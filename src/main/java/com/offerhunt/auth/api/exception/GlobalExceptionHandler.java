@@ -3,6 +3,7 @@ package com.offerhunt.auth.api.exception;
 import com.offerhunt.auth.api.dto.ErrorResponse;
 import com.offerhunt.auth.domain.service.PasswordRecoveryService;
 import com.offerhunt.auth.domain.service.UserProfileService;
+import com.offerhunt.auth.domain.service.UserService;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -106,4 +107,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleMultipartTooLarge(RuntimeException ex) {
         return ResponseEntity.badRequest().body(Map.of("message", "Размер файла не должен превышать 5 МБ"));
     }
+
+    @ExceptionHandler(UserService.IncorrectCurrentPasswordException.class)
+    public ResponseEntity<Map<String, String>> handleIncorrectCurrentPassword(
+        UserService.IncorrectCurrentPasswordException ex
+    ) {
+        return ResponseEntity.badRequest()
+            .body(Map.of("message", "Текущий пароль неверный"));
+    }
+
+    @ExceptionHandler(UserService.PasswordChangeDbException.class)
+    public ResponseEntity<Map<String, String>> handlePasswordChangeDb(
+        UserService.PasswordChangeDbException ex
+    ) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(Map.of("message", "Не удалось изменить пароль. Попробуйте позже"));
+    }
+
 }

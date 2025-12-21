@@ -1,5 +1,6 @@
 package com.offerhunt.auth.api.controller;
 
+import com.offerhunt.auth.api.dto.ChangePasswordRequest;
 import com.offerhunt.auth.api.dto.ForgotPasswordRequest;
 import com.offerhunt.auth.api.dto.LoginRequest;
 import com.offerhunt.auth.api.dto.PasswordResetRequest;
@@ -11,11 +12,18 @@ import com.offerhunt.auth.domain.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Validator;
 import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -76,6 +84,36 @@ public class AuthApiController {
             "message", "Если аккаунт существует, письмо отправлено."
         ));
     }
+
+    @PostMapping("/password/change")
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request, JwtAuthenticationToken auth) {
+        UUID userId = UUID.fromString(auth.getToken().getSubject());
+
+        String current = request != null ? request.currentPassword() : null;
+        if (current == null || current.isBlank()) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", "Текущий пароль обязателен"));
+        }
+
+        String newPassword = request != null ? request.newPassword() : null;
+        if (!strongPasswordValidator.isValid(newPassword, null)) {
+            log.info("Password change failed – weak password");
+            return ResponseEntity.badRequest()
+                .body(Map.of("message",
+                    "Пароль слишком простой. Добавьте цифры, символы или заглавные буквы"));
+        }
+
+        String confirm = request != null ? request.newPasswordConfirmation() : null;
+        if (confirm == null || !confirm.equals(newPassword)) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", "Пароли не совпадают"));
+        }
+
+        users.changePassword(userId, current, newPassword);
+
+        return ResponseEntity.ok(Map.of("message", "Пароль успешно изменен"));
+    }
+
 
     @PostMapping("/password/reset")
     public ResponseEntity<?> resetPassword(@RequestBody PasswordResetRequest request) {
